@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiveKit Test Client</title>
+
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f0f0f;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+      h1 {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        letter-spacing: 0.02em;
+      }
+      .card {
+        background: #1a1a1a;
+        border: 0.5px solid #2a2a2a;
+        border-radius: 10px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .card-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #666;
+        margin-bottom: 0.75rem;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: center;
+      }
+      .row label {
+        font-size: 12px;
+        color: #888;
+        min-width: 80px;
+      }
+      input {
+        flex: 1;
+        height: 34px;
+        background: #111;
+        border: 0.5px solid #333;
+        border-radius: 6px;
+        color: #e0e0e0;
+        font-size: 13px;
+        padding: 0 10px;
+        outline: none;
+        font-family: inherit;
+      }
+      input:focus {
+        border-color: #555;
+      }
+      textarea {
+        width: 100%;
+        background: #111;
+        border: 0.5px solid #333;
+        border-radius: 6px;
+        color: #e0e0e0;
+        font-size: 12px;
+        font-family: monospace;
+        padding: 8px 10px;
+        outline: none;
+        resize: vertical;
+        min-height: 60px;
+      }
+      textarea:focus {
+        border-color: #555;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+      button {
+        height: 34px;
+        padding: 0 14px;
+        font-size: 13px;
+        border: 0.5px solid #333;
+        border-radius: 6px;
+        background: transparent;
+        color: #e0e0e0;
+        cursor: pointer;
+        font-family: inherit;
+        white-space: nowrap;
+      }
+      button:hover {
+        background: #222;
+        border-color: #444;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .btn-connect {
+        background: #0f3;
+        color: #000;
+        border-color: #0f3;
+        font-weight: 500;
+      }
+      .btn-connect:hover {
+        background: #0d0;
+      }
+      .btn-disconnect {
+        background: #f33;
+        color: #fff;
+        border-color: #f33;
+      }
+      .btn-disconnect:hover {
+        background: #d00;
+      }
+      .btn-pub {
+        background: #07f;
+        color: #fff;
+        border-color: #07f;
+      }
+      .btn-pub:hover {
+        background: #05c;
+      }
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 0.75rem;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #444;
+        flex-shrink: 0;
+      }
+      .dot.connected {
+        background: #0f3;
+        box-shadow: 0 0 6px #0f3;
+      }
+      .dot.connecting {
+        background: #fa0;
+        animation: pulse 0.8s infinite alternate;
+      }
+      .dot.error {
+        background: #f33;
+      }
+      #statusText {
+        font-size: 13px;
+        color: #888;
+      }
+      @keyframes pulse {
+        to {
+          opacity: 0.4;
+        }
+      }
+      .log {
+        font-family: monospace;
+        font-size: 12px;
+        line-height: 1.7;
+        background: #111;
+        border: 0.5px solid #222;
+        border-radius: 6px;
+        padding: 0.75rem;
+        height: 200px;
+        overflow-y: auto;
+      }
+      .log .ts {
+        color: #555;
+      }
+      .log .ok {
+        color: #0f3;
+      }
+      .log .warn {
+        color: #fa0;
+      }
+      .log .err {
+        color: #f55;
+      }
+      .log .info {
+        color: #7af;
+      }
+      #videos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      video {
+        width: 280px;
+        height: 180px;
+        background: #111;
+        border: 0.5px solid #2a2a2a;
+        border-radius: 8px;
+        object-fit: cover;
+      }
+      video.local {
+        border-color: #0f3;
+      }
+      .vid-label {
+        font-size: 11px;
+        color: #888;
+        margin-top: 4px;
+        text-align: center;
+      }
+      .vid-wrap {
+        display: flex;
+        flex-direction: column;
+      }
+      .participants {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .participant-chip {
+        font-size: 12px;
+        background: #222;
+        border: 0.5px solid #333;
+        border-radius: 20px;
+        padding: 3px 10px;
+        color: #ccc;
+      }
+      .divider {
+        height: 0.5px;
+        background: #222;
+        margin: 0.75rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LiveKit test client</h1>
+
+    <div class="card">
+      <div class="card-title">Connection</div>
+      <div class="row">
+        <label>LiveKit URL</label>
+        <input id="lvUrl" placeholder="wss://your-project.livekit.cloud" />
+      </div>
+      <div class="row">
+        <label>Token</label>
+        <textarea
+          id="lvToken"
+          placeholder="paste your JWT token here"
+          rows="3"
+        ></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-connect" id="btnConnect">Connect</button>
+        <button class="btn-disconnect" id="btnDisconnect">Disconnect</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="status-row">
+        <div class="dot" id="dot"></div>
+        <span id="statusText">disconnected</span>
+      </div>
+      <div style="font-size: 12px; color: #666; margin-bottom: 6px">
+        Participants
+      </div>
+      <div class="participants" id="participants">
+        <span style="font-size: 12px; color: #555">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Publish</div>
+      <div class="btn-row">
+        <button class="btn-pub" id="btnCamera">Camera</button>
+        <button class="btn-pub" id="btnMic">Microphone</button>
+        <button class="btn-pub" id="btnScreen">Screen share</button>
+        <button id="btnUnpub">Unpublish all</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Video tracks</div>
+      <div id="videos">
+        <span style="font-size: 12px; color: #555">none</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Event log</div>
+      <div class="log" id="log"></div>
+      <div style="margin-top: 6px">
+        <button id="btnClear">Clear</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as LK from "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.esm.mjs";
+      let room = null;
+
+      function ts() {
+        return new Date().toTimeString().slice(0, 8);
+      }
+
+      function log(msg, cls = "") {
+        const el = document.getElementById("log");
+        const line = document.createElement("div");
+        line.innerHTML = `<span class="ts">[${ts()}]</span> <span class="${cls}">${msg}</span>`;
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
+      }
+
+      function clearLog() {
+        document.getElementById("log").innerHTML = "";
+      }
+
+      function setStatus(state) {
+        const dot = document.getElementById("dot");
+        const txt = document.getElementById("statusText");
+        dot.className = "dot";
+        if (state === "connected") {
+          dot.classList.add("connected");
+          txt.textContent = "connected";
+        } else if (state === "connecting") {
+          dot.classList.add("connecting");
+          txt.textContent = "connecting…";
+        } else if (state === "error") {
+          dot.classList.add("error");
+          txt.textContent = "error";
+        } else {
+          txt.textContent = "disconnected";
+        }
+      }
+
+      function updateParticipants() {
+        if (!room) return;
+        const el = document.getElementById("participants");
+        el.innerHTML = "";
+        const local = room.localParticipant;
+        if (local) {
+          const chip = document.createElement("span");
+          chip.className = "participant-chip";
+          chip.textContent = local.identity + " (you)";
+          chip.style.borderColor = "#0f3";
+          chip.style.color = "#0f3";
+          el.appendChild(chip);
+        }
+        for (const [, p] of room.remoteParticipants) {
+          const chip = document.createElement("span");
+          chip.className = "participant-chip";
+          chip.textContent = p.identity;
+          el.appendChild(chip);
+        }
+        if (!el.children.length)
+          el.innerHTML = '<span style="font-size:12px;color:#555;">—</span>';
+      }
+
+      function attachVideo(track, identity, isLocal) {
+        const container = document.getElementById("videos");
+        const existing = document.getElementById(
+          "vid-" + identity + "-" + track.sid,
+        );
+        if (existing) return;
+        const placeholder = container.querySelector("span");
+        if (placeholder) placeholder.remove();
+        const wrap = document.createElement("div");
+        wrap.className = "vid-wrap";
+        wrap.id = "vid-" + identity + "-" + track.sid;
+        const vid = track.attach();
+        if (isLocal) {
+          vid.muted = true;
+          vid.className = "local";
+        }
+        wrap.appendChild(vid);
+        const label = document.createElement("div");
+        label.className = "vid-label";
+        label.textContent = identity + (isLocal ? " (local)" : "");
+        wrap.appendChild(label);
+        container.appendChild(wrap);
+      }
+
+      function detachVideo(track, identity) {
+        const el = document.getElementById("vid-" + identity + "-" + track.sid);
+        if (el) el.remove();
+        const container = document.getElementById("videos");
+        if (!container.children.length)
+          container.innerHTML =
+            '<span style="font-size:12px;color:#555;">none</span>';
+      }
+
+      async function connect() {
+        const url = document.getElementById("lvUrl").value.trim();
+        const token = document.getElementById("lvToken").value.trim();
+        if (!url || !token) {
+          log("URL and token are required", "err");
+          return;
+        }
+        if (room) await disconnect();
+
+        room = new LK.Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+
+        room.on(LK.RoomEvent.Connected, () => {
+          setStatus("connected");
+          log("connected — room: " + room.name, "ok");
+          updateParticipants();
+        });
+
+        room.on(LK.RoomEvent.Disconnected, (reason) => {
+          setStatus("disconnected");
+          log("disconnected: " + (reason || "normal"), "warn");
+          updateParticipants();
+        });
+
+        room.on(LK.RoomEvent.ConnectionStateChanged, (state) => {
+          log("state → " + state, "info");
+          if (state === "connecting") setStatus("connecting");
+        });
+
+        room.on(LK.RoomEvent.ParticipantConnected, (p) => {
+          log("participant joined: " + p.identity, "ok");
+          updateParticipants();
+        });
+
+        room.on(LK.RoomEvent.ParticipantDisconnected, (p) => {
+          log("participant left: " + p.identity, "warn");
+          updateParticipants();
+        });
+
+        room.on(LK.RoomEvent.TrackSubscribed, (track, pub, participant) => {
+          log(
+            "subscribed: " + track.kind + " from " + participant.identity,
+            "info",
+          );
+          if (track.kind === LK.Track.Kind.Video) {
+            attachVideo(track, participant.identity, false);
+          }
+          if (track.kind === LK.Track.Kind.Audio) {
+            const el = track.attach();
+            document.body.appendChild(el);
+          }
+        });
+
+        room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
+          log(
+            "unsubscribed: " + track.kind + " from " + participant.identity,
+            "warn",
+          );
+          track.detach().forEach((el) => el.remove());
+          if (track.kind === LK.Track.Kind.Video)
+            detachVideo(track, participant.identity);
+        });
+
+        room.on(LK.RoomEvent.LocalTrackPublished, (pub) => {
+          log("published local: " + pub.kind, "ok");
+          if (pub.kind === LK.Track.Kind.Video && pub.track) {
+            attachVideo(pub.track, room.localParticipant.identity, true);
+          }
+        });
+
+        room.on(LK.RoomEvent.LocalTrackUnpublished, (pub) => {
+          log("unpublished local: " + pub.kind, "warn");
+          if (pub.track) {
+            pub.track.detach().forEach((el) => el.remove());
+            if (pub.kind === LK.Track.Kind.Video)
+              detachVideo(pub.track, room.localParticipant.identity);
+          }
+        });
+
+        room.on(LK.RoomEvent.MediaDevicesError, (err) => {
+          log("media device error: " + err.message, "err");
+        });
+
+        try {
+          setStatus("connecting");
+          log("connecting to " + url + "…");
+          await room.connect(url, token);
+        } catch (e) {
+          setStatus("error");
+          log("connect failed: " + e.message, "err");
+          room = null;
+        }
+      }
+
+      async function disconnect() {
+        if (!room) return;
+        await room.disconnect();
+        room = null;
+        document.getElementById("videos").innerHTML =
+          '<span style="font-size:12px;color:#555;">none</span>';
+        document.getElementById("participants").innerHTML =
+          '<span style="font-size:12px;color:#555;">—</span>';
+        setStatus("disconnected");
+      }
+
+      async function pubCamera() {
+        if (!room) {
+          log("not connected", "err");
+          return;
+        }
+        try {
+          await navigator.mediaDevices.getUserMedia({ video: true });
+          await room.localParticipant.setCameraEnabled(true);
+          log("camera enabled", "ok");
+        } catch (e) {
+          log("camera error: " + e.message, "err");
+        }
+      }
+
+      async function pubMic() {
+        if (!room) {
+          log("not connected", "err");
+          return;
+        }
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          await room.localParticipant.setMicrophoneEnabled(true);
+          log("microphone enabled", "ok");
+        } catch (e) {
+          log("mic error: " + e.message, "err");
+        }
+      }
+      async function pubScreen() {
+        if (!room) {
+          log("not connected", "err");
+          return;
+        }
+        try {
+          await room.localParticipant.setScreenShareEnabled(true);
+          log("screen share enabled", "ok");
+        } catch (e) {
+          log("screen share error: " + e.message, "err");
+        }
+      }
+
+      async function unpubAll() {
+        if (!room) {
+          log("not connected", "err");
+          return;
+        }
+        await room.localParticipant.setCameraEnabled(false);
+        await room.localParticipant.setMicrophoneEnabled(false);
+        await room.localParticipant.setScreenShareEnabled(false);
+        log("all tracks unpublished", "warn");
+      }
+
+      document.getElementById("btnConnect").onclick = connect;
+      document.getElementById("btnDisconnect").onclick = disconnect;
+      document.getElementById("btnCamera").onclick = pubCamera;
+      document.getElementById("btnMic").onclick = pubMic;
+      document.getElementById("btnScreen").onclick = pubScreen;
+      document.getElementById("btnUnpub").onclick = unpubAll;
+      document.getElementById("btnClear").onclick = clearLog;
+    </script>
+  </body>
+</html>
