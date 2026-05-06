@@ -403,6 +403,8 @@
       let currentRoomToken = null;
       let manualTokenMode = false;
       let isAdmin = false;
+      let ws = null; // WebSocket connection for presence
+      let currentPresenceId = null;
 
       // DOM elements
       const urlInput = document.getElementById("lvUrl");
@@ -488,6 +490,239 @@
         }
       }
 
+      // WebSocket Presence Management
+      function connectWebSocket() {
+        if (!storedAccessToken) {
+          log("❌ Cannot connect WebSocket: No auth token", "err");
+          return;
+        }
+
+        const wsUrl = `wss://backend.hxqi.my.id/ws?token=${storedAccessToken}`;
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          log("✅ WebSocket presence connected", "ok");
+          // Request presence list
+          ws.send(JSON.stringify({ type: "get_presence" }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handlePresenceMessage(data);
+          } catch (error) {
+            console.error("Error parsing presence message:", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          log(`❌ WebSocket error: ${error.message}`, "err");
+        };
+
+        ws.onclose = () => {
+          log("🔌 WebSocket disconnected", "warn");
+          // Try to reconnect after 5 seconds
+          setTimeout(() => {
+            if (storedAccessToken) {
+              log("🔄 Reconnecting WebSocket...", "info");
+              connectWebSocket();
+            }
+          }, 5000);
+        };
+      }
+
+      function handlePresenceMessage(data) {
+        switch (data.type) {
+          case "presence_list":
+            updatePresenceList(data.users);
+            break;
+          case "user_joined":
+            log(`👤 User joined: ${data.presenceId}`, "info");
+            addPresenceUser(data.presenceId);
+            break;
+          case "user_left":
+            log(`👋 User left: ${data.presenceId}`, "info");
+            removePresenceUser(data.presenceId);
+            break;
+          case "contact_request_received":
+            handleContactRequest(data);
+            break;
+          case "contact_request_accepted":
+            log(`✅ Contact request accepted by ${data.fromDisplayName}`, "ok");
+            break;
+          case "contact_request_rejected":
+            log(
+              `❌ Contact request rejected by ${data.fromPresenceId}`,
+              "warn",
+            );
+            break;
+          case "incoming_call":
+            handleIncomingCall(data);
+            break;
+          case "call_response":
+            handleCallResponse(data);
+            break;
+          case "call_ended":
+            log(`📞 Call ended in room: ${data.roomName}`, "warn");
+            break;
+          default:
+            console.log("Unknown presence message type:", data.type);
+        }
+      }
+
+      function updatePresenceList(users) {
+        const presenceContainer = presenceList;
+        if (!presenceContainer) return;
+
+        if (users.length === 0) {
+          presenceContainer.innerHTML =
+            '<span class="text-gray-500 text-sm">No users online</span>';
+        } else {
+          presenceContainer.innerHTML = users
+            .map(
+              (user) => `
+        <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded hover:bg-gray-800 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+            <span class="text-sm">${escapeHtml(user.presenceId)}</span>
+          </div>
+          <button onclick="window.sendContactRequest('${user.presenceId}')" 
+                  class="text-xs text-blue-400 hover:text-blue-300">
+            Add Contact
+          </button>
+        </div>
+      `,
+            )
+            .join("");
+        }
+      }
+
+      function addPresenceUser(presenceId) {
+        const presenceContainer = presenceList;
+        if (!presenceContainer) return;
+
+        // Check if user already exists
+        if (presenceContainer.innerHTML.includes(presenceId)) return;
+
+        const newUserDiv = document.createElement("div");
+        newUserDiv.className =
+          "flex items-center justify-between p-2 bg-gray-800/50 rounded hover:bg-gray-800 transition-colors";
+        newUserDiv.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+        <span class="text-sm">${escapeHtml(presenceId)}</span>
+      </div>
+      <button onclick="window.sendContactRequest('${presenceId}')" 
+              class="text-xs text-blue-400 hover:text-blue-300">
+        Add Contact
+      </button>
+    `;
+        presenceContainer.appendChild(newUserDiv);
+      }
+
+      function removePresenceUser(presenceId) {
+        const presenceContainer = presenceList;
+        if (!presenceContainer) return;
+
+        const users = presenceContainer.children;
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].innerHTML.includes(presenceId)) {
+            users[i].remove();
+            break;
+          }
+        }
+      }
+
+      function handleContactRequest(data) {
+        log(
+          `📨 Contact request from ${data.fromDisplayName} (${data.fromPresenceId})`,
+          "info",
+        );
+
+        const accept = confirm(
+          `Contact request from ${data.fromDisplayName}\nDo you want to accept?`,
+        );
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "respond_to_contact_request",
+              fromPresenceId: data.fromPresenceId,
+              accepted: accept,
+            }),
+          );
+        }
+      }
+
+      function handleIncomingCall(data) {
+        log(
+          `📞 Incoming call from ${data.from.display_name || data.from.username}`,
+          "info",
+        );
+
+        const accept = confirm(
+          `Incoming call from ${data.from.display_name || data.from.username}\nDo you want to answer?`,
+        );
+
+        if (accept) {
+          // Accept call and join room
+          roomNameInput.value = data.roomName;
+          tokenTextarea.value = currentRoomToken;
+          connectToLiveKit();
+
+          // Send acceptance response
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "call_response",
+                fromUserId: data.from.id,
+                accepted: true,
+                roomName: data.roomName,
+                callLogId: data.callLogId,
+              }),
+            );
+          }
+        } else {
+          // Reject call
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "call_response",
+                fromUserId: data.from.id,
+                accepted: false,
+                roomName: null,
+                callLogId: data.callLogId,
+              }),
+            );
+          }
+        }
+      }
+
+      function handleCallResponse(data) {
+        if (data.accepted) {
+          log(`✅ Call accepted by ${data.from.username}`, "ok");
+          // Auto-join the room when call is accepted
+          connectToLiveKit();
+        } else {
+          log(`❌ Call rejected by ${data.from.username}`, "warn");
+        }
+      }
+
+      // Make sendContactRequest available globally
+      window.sendContactRequest = (targetPresenceId) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "send_contact_request",
+              targetPresenceId: targetPresenceId,
+            }),
+          );
+          log(`📨 Contact request sent to ${targetPresenceId}`, "info");
+        } else {
+          log("❌ WebSocket not connected", "err");
+        }
+      };
+
       function updateParticipants() {
         if (!room) {
           document.getElementById("participants").innerHTML =
@@ -554,6 +789,23 @@
 
       async function disconnectLiveKit() {
         if (!room) return;
+
+        // Notify call end if in a call
+        if (room && room.name && ws && ws.readyState === WebSocket.OPEN) {
+          const participants = [room.localParticipant.identity];
+          for (const [, p] of room.remoteParticipants) {
+            participants.push(p.identity);
+          }
+          ws.send(
+            JSON.stringify({
+              type: "end_call",
+              callRoomName: room.name,
+              current_participants: participants,
+              callLogId: currentCallLogId,
+            }),
+          );
+        }
+
         await room.disconnect();
         room = null;
         document.getElementById("videos").innerHTML =
@@ -600,13 +852,15 @@
           storedAccessToken = bearer;
           isAdmin = isAdminLogin || data.user?.is_admin || false;
 
+          // Connect WebSocket for presence
+          connectWebSocket();
+
           if (isAdmin) {
             globalAdminBadge.classList.remove("hidden");
             authStatusDiv.innerHTML = `✅ Logged in as ${username} (Admin) · token ready`;
             log(`✅ Admin login success`, "ok");
             // Load admin data
             await loadUsers();
-            await loadPresence();
             await loadCallLogs();
           } else {
             globalAdminBadge.classList.add("hidden");
@@ -687,6 +941,10 @@
       }
 
       function logoutClear() {
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
         storedAccessToken = null;
         currentRoomToken = null;
         manualTokenMode = false;
@@ -720,28 +978,20 @@
             const row = document.createElement("tr");
             row.className = "border-b border-gray-800";
             row.innerHTML = `
-              <td class="py-2">${escapeHtml(user.username)}</td>
-              <td class="py-2">${escapeHtml(user.display_name || "-")}</td>
-              <td class="py-2">
-                <span class="inline-flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full ${user.is_online ? "bg-green-400" : "bg-gray-500"}"></span>
-                  <span class="text-xs">${user.is_online ? "Online" : "Offline"}</span>
-                </span>
-              </td>
-              <td class="py-2">
-                ${user.is_admin ? '<span class="text-xs bg-purple-900/50 text-purple-400 px-2 py-0.5 rounded">Admin</span>' : '<span class="text-xs bg-gray-800 px-2 py-0.5 rounded">User</span>'}
-              </td>
-              <td class="py-2 text-xs">${new Date(user.created_at).toLocaleString()}</td>
-              <td class="py-2">
-                <button class="text-xs text-red-400 hover:text-red-300 delete-user" data-user-id="${user.id}">Delete</button>
-              </td>
-            `;
+          <td class="py-2">${escapeHtml(user.username)}</td>
+          <td class="py-2">${escapeHtml(user.display_name || "-")}</td>
+          <td class="py-2">
+            <span class="inline-flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full ${user.is_online ? "bg-green-400" : "bg-gray-500"}"></span>
+              <span class="text-xs">${user.is_online ? "Online" : "Offline"}</span>
+            </span>
+          </td>
+          <td class="py-2">
+            ${user.is_admin ? '<span class="text-xs bg-purple-900/50 text-purple-400 px-2 py-0.5 rounded">Admin</span>' : '<span class="text-xs bg-gray-800 px-2 py-0.5 rounded">User</span>'}
+          </td>
+          <td class="py-2 text-xs">${new Date(user.created_at).toLocaleString()}</td>
+        `;
             usersTableBody.appendChild(row);
-          });
-
-          // Add delete handlers
-          document.querySelectorAll(".delete-user").forEach((btn) => {
-            btn.addEventListener("click", () => deleteUser(btn.dataset.userId));
           });
 
           log("✅ Users list refreshed", "ok");
@@ -792,72 +1042,12 @@
         }
       }
 
-      async function deleteUser(userId) {
-        if (!confirm("Are you sure you want to delete this user?")) return;
-
-        try {
-          const response = await fetch(
-            `https://backend.hxqi.my.id/api/admin/users/${userId}`,
-            {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${storedAccessToken}` },
-            },
-          );
-
-          if (!response.ok) throw new Error("Failed to delete user");
-
-          log("✅ User deleted successfully", "ok");
-          await loadUsers();
-        } catch (err) {
-          log(`❌ Failed to delete user: ${err.message}`, "err");
-        }
-      }
-
-      async function loadPresence() {
-        if (!storedAccessToken) return;
-
-        try {
-          const response = await fetch(
-            "https://backend.hxqi.my.id/api/presence",
-            {
-              headers: { Authorization: `Bearer ${storedAccessToken}` },
-            },
-          );
-
-          if (!response.ok) throw new Error("Failed to load presence");
-
-          const data = await response.json();
-          const users = data.users;
-
-          if (users.length === 0) {
-            presenceList.innerHTML =
-              '<span class="text-gray-500 text-sm">No users online</span>';
-          } else {
-            presenceList.innerHTML = users
-              .map(
-                (user) => `
-              <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
-                <div class="flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                  <span class="text-sm">${escapeHtml(user.presenceId || user.id)}</span>
-                </div>
-                <span class="text-xs text-gray-400">Connected</span>
-              </div>
-            `,
-              )
-              .join("");
-          }
-        } catch (err) {
-          log(`❌ Failed to load presence: ${err.message}`, "err");
-        }
-      }
-
       async function loadCallLogs() {
         if (!storedAccessToken || !isAdmin) return;
 
         try {
           const response = await fetch(
-            "https://backend.hxqi.my.id/api/admin/call-logs",
+            "https://backend.hxqi.my.id/api/call-logs",
             {
               headers: { Authorization: `Bearer ${storedAccessToken}` },
             },
@@ -866,7 +1056,7 @@
           if (!response.ok) throw new Error("Failed to load call logs");
 
           const data = await response.json();
-          const logs = data.logs || [];
+          const logs = data.call_logs || [];
 
           if (logs.length === 0) {
             callLogsBody.innerHTML =
@@ -875,19 +1065,50 @@
             callLogsBody.innerHTML = logs
               .map(
                 (log) => `
-              <tr class="border-b border-gray-800">
-                <td class="py-2 text-xs">${escapeHtml(log.room_name)}</td>
-                <td class="py-2 text-xs">${escapeHtml(log.caller_name || log.caller_id)}</td>
-                <td class="py-2 text-xs">${escapeHtml(log.callee_name || log.callee_id)}</td>
-                <td class="py-2 text-xs">${new Date(log.started_at).toLocaleString()}</td>
-                <td class="py-2 text-xs">${log.ended_at ? new Date(log.ended_at).toLocaleString() : "In progress"}</td>
-              </tr>
-            `,
+            <tr class="border-b border-gray-800">
+              <td class="py-2 text-xs">${escapeHtml(log.room_name)}</td>
+              <td class="py-2 text-xs">${escapeHtml(log.caller_name || log.caller_id)}</td>
+              <td class="py-2 text-xs">${escapeHtml(log.callee_name || log.callee_id)}</td>
+              <td class="py-2 text-xs">${new Date(log.started_at).toLocaleString()}</td>
+              <td class="py-2 text-xs">${log.ended_at ? new Date(log.ended_at).toLocaleString() : "In progress"}</td>
+            </tr>
+          `,
               )
               .join("");
           }
         } catch (err) {
           log(`❌ Failed to load call logs: ${err.message}`, "err");
+        }
+      }
+
+      let currentCallLogId = null;
+
+      async function initiateCall() {
+        const targetPresenceId = prompt(
+          "Enter the presence ID of the user to call:",
+        );
+        if (!targetPresenceId) return;
+
+        const roomName = `call_${Date.now()}`;
+        roomNameInput.value = roomName;
+
+        // Request token first
+        const token = await fetchLiveKitToken();
+        if (!token) return;
+
+        // Send call initiation via WebSocket
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "initiate_call",
+              targetUserId: targetUserIdInput.value,
+              roomName: roomName,
+            }),
+          );
+          currentCallLogId = Date.now();
+          log(`📞 Initiating call to ${targetPresenceId}...`, "info");
+        } else {
+          log("❌ WebSocket not connected", "err");
         }
       }
 
@@ -1092,7 +1313,6 @@
         tabCall.classList.add("text-gray-400");
 
         await loadUsers();
-        await loadPresence();
         await loadCallLogs();
       });
 
@@ -1132,14 +1352,6 @@
       // Initial state
       btnFetchToken.disabled = true;
       setStatus("disconnected");
-
-      // Periodically refresh presence and call logs for admin
-      setInterval(() => {
-        if (isAdmin && !adminPanelTab.classList.contains("hidden")) {
-          loadPresence();
-          loadCallLogs();
-        }
-      }, 5000);
     </script>
   </body>
 </html>
