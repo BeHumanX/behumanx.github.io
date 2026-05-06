@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LiveKit Test Client</title>
+    <title>LiveKit Client · Login & Room</title>
 
     <style>
       *,
@@ -14,308 +14,434 @@
         padding: 0;
       }
       body {
-        font-family: system-ui, sans-serif;
+        font-family: system-ui, "Segoe UI", monospace;
         background: #0f0f0f;
         color: #e0e0e0;
         min-height: 100vh;
         padding: 2rem;
       }
       h1 {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: 500;
         color: #fff;
         margin-bottom: 1.5rem;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
       }
       .card {
         background: #1a1a1a;
         border: 0.5px solid #2a2a2a;
-        border-radius: 10px;
+        border-radius: 14px;
         padding: 1.25rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
+        transition: all 0.1s ease;
       }
       .card-title {
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #666;
-        margin-bottom: 0.75rem;
+        color: #8a8a8a;
+        margin-bottom: 0.9rem;
+        font-weight: 500;
       }
       .row {
         display: flex;
-        gap: 8px;
-        margin-bottom: 8px;
+        gap: 10px;
+        margin-bottom: 12px;
         align-items: center;
+        flex-wrap: wrap;
       }
       .row label {
         font-size: 12px;
-        color: #888;
+        color: #aaa;
         min-width: 80px;
+        font-weight: 450;
       }
-      input {
+      input,
+      select {
         flex: 1;
-        height: 34px;
+        height: 38px;
         background: #111;
-        border: 0.5px solid #333;
-        border-radius: 6px;
-        color: #e0e0e0;
+        border: 0.5px solid #2e2e2e;
+        border-radius: 8px;
+        color: #f0f0f0;
         font-size: 13px;
-        padding: 0 10px;
+        padding: 0 12px;
         outline: none;
         font-family: inherit;
       }
-      input:focus {
-        border-color: #555;
+      input:focus,
+      select:focus {
+        border-color: #5a5a5a;
+        background: #161616;
       }
       textarea {
         width: 100%;
         background: #111;
-        border: 0.5px solid #333;
-        border-radius: 6px;
+        border: 0.5px solid #2e2e2e;
+        border-radius: 8px;
         color: #e0e0e0;
         font-size: 12px;
         font-family: monospace;
-        padding: 8px 10px;
+        padding: 8px 12px;
         outline: none;
         resize: vertical;
-        min-height: 60px;
-      }
-      textarea:focus {
-        border-color: #555;
+        min-height: 68px;
       }
       .btn-row {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         flex-wrap: wrap;
-        margin-top: 4px;
+        margin-top: 8px;
       }
       button {
-        height: 34px;
-        padding: 0 14px;
+        height: 36px;
+        padding: 0 16px;
         font-size: 13px;
-        border: 0.5px solid #333;
-        border-radius: 6px;
-        background: transparent;
-        color: #e0e0e0;
+        font-weight: 500;
+        border: 0.5px solid #3a3a3a;
+        border-radius: 8px;
+        background: #222;
+        color: #ddd;
         cursor: pointer;
         font-family: inherit;
-        white-space: nowrap;
+        transition: all 0.15s;
       }
       button:hover {
-        background: #222;
-        border-color: #444;
+        background: #2c2c2c;
+        border-color: #5a5a5a;
       }
       button:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
       }
-      .btn-connect {
+      .btn-primary {
+        background: #2b6ef0;
+        border-color: #2b6ef0;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #1f5ad6;
+      }
+      .btn-success {
         background: #0f3;
         color: #000;
         border-color: #0f3;
-        font-weight: 500;
+        font-weight: 600;
       }
-      .btn-connect:hover {
-        background: #0d0;
+      .btn-danger {
+        background: #e5484d;
+        border-color: #e5484d;
+        color: white;
       }
-      .btn-disconnect {
-        background: #f33;
-        color: #fff;
-        border-color: #f33;
-      }
-      .btn-disconnect:hover {
-        background: #d00;
-      }
-      .btn-pub {
-        background: #07f;
-        color: #fff;
-        border-color: #07f;
-      }
-      .btn-pub:hover {
-        background: #05c;
+      .btn-warning {
+        background: #f5a623;
+        border-color: #f5a623;
+        color: #1a1a1a;
       }
       .status-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 0.75rem;
+        gap: 12px;
+        margin-bottom: 12px;
       }
       .dot {
-        width: 8px;
-        height: 8px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         background: #444;
         flex-shrink: 0;
       }
       .dot.connected {
         background: #0f3;
-        box-shadow: 0 0 6px #0f3;
+        box-shadow: 0 0 7px #0f3;
       }
       .dot.connecting {
-        background: #fa0;
+        background: #f5a623;
         animation: pulse 0.8s infinite alternate;
       }
       .dot.error {
-        background: #f33;
+        background: #e5484d;
       }
       #statusText {
         font-size: 13px;
-        color: #888;
+        font-weight: 450;
+        color: #aaa;
       }
       @keyframes pulse {
         to {
           opacity: 0.4;
+          transform: scale(0.95);
         }
       }
       .log {
-        font-family: monospace;
+        font-family: "SF Mono", "Fira Code", monospace;
         font-size: 12px;
-        line-height: 1.7;
+        line-height: 1.65;
         background: #111;
-        border: 0.5px solid #222;
-        border-radius: 6px;
-        padding: 0.75rem;
-        height: 200px;
+        border: 0.5px solid #262626;
+        border-radius: 10px;
+        padding: 0.85rem;
+        height: 210px;
         overflow-y: auto;
       }
       .log .ts {
-        color: #555;
+        color: #5e5e5e;
+        margin-right: 8px;
       }
       .log .ok {
-        color: #0f3;
+        color: #3eff8f;
       }
       .log .warn {
-        color: #fa0;
+        color: #ffb347;
       }
       .log .err {
-        color: #f55;
+        color: #ff7b72;
       }
       .log .info {
-        color: #7af;
+        color: #79c0ff;
       }
       #videos {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
+        align-items: flex-start;
       }
       video {
         width: 280px;
         height: 180px;
-        background: #111;
-        border: 0.5px solid #2a2a2a;
-        border-radius: 8px;
+        background: #0a0a0a;
+        border: 1px solid #2e2e2e;
+        border-radius: 12px;
         object-fit: cover;
+        background: #000;
       }
       video.local {
         border-color: #0f3;
+        box-shadow: 0 0 0 1px #0f3;
       }
       .vid-label {
         font-size: 11px;
-        color: #888;
-        margin-top: 4px;
+        color: #aaa;
+        margin-top: 6px;
         text-align: center;
       }
       .vid-wrap {
         display: flex;
         flex-direction: column;
+        background: #121212;
+        border-radius: 12px;
+        padding: 6px;
       }
       .participants {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
         margin-top: 6px;
       }
       .participant-chip {
         font-size: 12px;
-        background: #222;
-        border: 0.5px solid #333;
-        border-radius: 20px;
-        padding: 3px 10px;
-        color: #ccc;
+        background: #252525;
+        border: 0.5px solid #3a3a3a;
+        border-radius: 24px;
+        padding: 4px 14px;
+        color: #e2e2e2;
       }
-      .divider {
-        height: 0.5px;
-        background: #222;
-        margin: 0.75rem 0;
+      .auth-badge {
+        font-size: 11px;
+        background: #0f0f0f;
+        border-radius: 20px;
+        padding: 4px 10px;
+        display: inline-block;
+        margin-top: 6px;
+        color: #0f3;
+        font-weight: 500;
+      }
+      hr {
+        border-color: #2a2a2a;
+        margin: 6px 0;
+      }
+      .flex-between {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      select {
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
-    <h1>LiveKit test client</h1>
+    <h1>🎙️ LiveKit client · call manager</h1>
 
+    <!-- AUTH CARD (login & room token) -->
     <div class="card">
-      <div class="card-title">Connection</div>
+      <div class="card-title">🔐 Authentication & room selection</div>
       <div class="row">
-        <label>LiveKit URL</label>
-        <input id="lvUrl" placeholder="wss://your-project.livekit.cloud" />
+        <label>Username</label>
+        <input
+          id="authUser"
+          type="text"
+          value="litegral"
+          placeholder="litegral"
+        />
       </div>
       <div class="row">
-        <label>Token</label>
-        <textarea
-          id="lvToken"
-          placeholder="paste your JWT token here"
-          rows="3"
-        ></textarea>
+        <label>Password</label>
+        <input
+          id="authPass"
+          type="password"
+          value="123Furina"
+          placeholder="••••••"
+        />
       </div>
       <div class="btn-row">
-        <button class="btn-connect" id="btnConnect">Connect</button>
-        <button class="btn-disconnect" id="btnDisconnect">Disconnect</button>
+        <button id="btnLogin" class="btn-primary">🔑 Login → get token</button>
+        <button id="btnLogout" style="background: #2c2c2c">
+          🚪 Logout (clear)
+        </button>
+      </div>
+      <div
+        id="authStatus"
+        style="font-size: 12px; margin-top: 10px; color: #6f6"
+      ></div>
+      <div class="row" style="margin-top: 14px">
+        <label>🏠 Room name</label>
+        <input
+          id="roomNameInput"
+          value="callme"
+          placeholder="e.g., callme, meeting123"
+        />
+      </div>
+      <div class="btn-row">
+        <button id="btnFetchToken" class="btn-primary" disabled>
+          🔁 Request token (requires login)
+        </button>
+        <button id="btnUseManualToken" style="background: #3a3a3a">
+          📝 Use manual token mode
+        </button>
       </div>
     </div>
 
+    <!-- LiveKit connection card -->
+    <div class="card">
+      <div class="card-title">📡 LiveKit connection</div>
+      <div class="row">
+        <label>LiveKit URL</label>
+        <input
+          id="lvUrl"
+          value="wss://your-project.livekit.cloud"
+          placeholder="wss://your-project.livekit.cloud"
+        />
+      </div>
+      <div class="row">
+        <label>JWT token</label>
+        <textarea
+          id="lvToken"
+          rows="2"
+          placeholder="paste token manually or auto-fetch from backend"
+        ></textarea>
+      </div>
+      <div class="btn-row">
+        <button id="btnConnect" class="btn-success">🔌 Connect to room</button>
+        <button id="btnDisconnect" class="btn-danger">⏹️ Disconnect</button>
+      </div>
+    </div>
+
+    <!-- Status & participants -->
     <div class="card">
       <div class="status-row">
         <div class="dot" id="dot"></div>
         <span id="statusText">disconnected</span>
+        <span
+          id="roomNameBadge"
+          style="
+            margin-left: auto;
+            font-size: 11px;
+            background: #222;
+            padding: 3px 8px;
+            border-radius: 20px;
+          "
+        ></span>
       </div>
-      <div style="font-size: 12px; color: #666; margin-bottom: 6px">
-        Participants
+      <div style="font-size: 12px; color: #999; margin-bottom: 8px">
+        👥 Participants
       </div>
       <div class="participants" id="participants">
-        <span style="font-size: 12px; color: #555">—</span>
+        <span style="color: #555">—</span>
       </div>
     </div>
 
+    <!-- Publishing -->
     <div class="card">
-      <div class="card-title">Publish</div>
+      <div class="card-title">📤 Publish tracks</div>
       <div class="btn-row">
-        <button class="btn-pub" id="btnCamera">Camera</button>
-        <button class="btn-pub" id="btnMic">Microphone</button>
-        <button class="btn-pub" id="btnScreen">Screen share</button>
-        <button id="btnUnpub">Unpublish all</button>
+        <button id="btnCamera" class="btn-primary">📷 Camera</button>
+        <button id="btnMic" class="btn-primary">🎙️ Microphone</button>
+        <button id="btnScreen" class="btn-primary">🖥️ Screen share</button>
+        <button id="btnUnpub" style="background: #3a2a2a">
+          🚫 Unpublish all
+        </button>
       </div>
     </div>
 
+    <!-- Video streams -->
     <div class="card">
-      <div class="card-title">Video tracks</div>
+      <div class="card-title">🖼️ Video streams</div>
       <div id="videos">
-        <span style="font-size: 12px; color: #555">none</span>
+        <span style="font-size: 12px; color: #555">no active video</span>
       </div>
     </div>
 
+    <!-- event log -->
     <div class="card">
-      <div class="card-title">Event log</div>
-      <div class="log" id="log"></div>
-      <div style="margin-top: 6px">
-        <button id="btnClear">Clear</button>
+      <div class="card-title flex-between">
+        <span>📋 Event log</span>
+        <button id="btnClear" style="height: 28px; padding: 0 12px">
+          Clear
+        </button>
       </div>
+      <div class="log" id="log"></div>
     </div>
 
     <script type="module">
       import * as LK from "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.esm.mjs";
-      let room = null;
 
+      let room = null;
+      let storedAccessToken = null; // Bearer token from /api/login
+      let currentRoomToken = null; // LiveKit JWT from /api/call/token
+      let manualTokenMode = false;
+
+      // DOM elements
+      const urlInput = document.getElementById("lvUrl");
+      const tokenTextarea = document.getElementById("lvToken");
+      const roomNameInput = document.getElementById("roomNameInput");
+      const authStatusDiv = document.getElementById("authStatus");
+      const btnLogin = document.getElementById("btnLogin");
+      const btnLogout = document.getElementById("btnLogout");
+      const btnFetchToken = document.getElementById("btnFetchToken");
+      const btnUseManual = document.getElementById("btnUseManualToken");
+      const connectBtn = document.getElementById("btnConnect");
+      const disconnectBtn = document.getElementById("btnDisconnect");
+      const roomNameBadge = document.getElementById("roomNameBadge");
+
+      // helpers
       function ts() {
         return new Date().toTimeString().slice(0, 8);
       }
-
       function log(msg, cls = "") {
         const el = document.getElementById("log");
         const line = document.createElement("div");
-        line.innerHTML = `<span class="ts">[${ts()}]</span> <span class="${cls}">${msg}</span>`;
+        line.innerHTML = `<span class="ts">[${ts()}]</span> <span class="${cls}">${escapeHtml(msg)}</span>`;
         el.appendChild(line);
         el.scrollTop = el.scrollHeight;
       }
-
+      function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function (m) {
+          if (m === "&") return "&amp;";
+          if (m === "<") return "&lt;";
+          if (m === ">") return "&gt;";
+          return m;
+        });
+      }
       function clearLog() {
         document.getElementById("log").innerHTML = "";
       }
@@ -339,7 +465,11 @@
       }
 
       function updateParticipants() {
-        if (!room) return;
+        if (!room) {
+          document.getElementById("participants").innerHTML =
+            '<span style="color:#555;">—</span>';
+          return;
+        }
         const el = document.getElementById("participants");
         el.innerHTML = "";
         const local = room.localParticipant;
@@ -358,7 +488,10 @@
           el.appendChild(chip);
         }
         if (!el.children.length)
-          el.innerHTML = '<span style="font-size:12px;color:#555;">—</span>';
+          el.innerHTML = '<span style="color:#555;">—</span>';
+        if (room && room.name)
+          roomNameBadge.textContent = `📌 room: ${room.name}`;
+        else roomNameBadge.textContent = "";
       }
 
       function attachVideo(track, identity, isLocal) {
@@ -368,7 +501,8 @@
         );
         if (existing) return;
         const placeholder = container.querySelector("span");
-        if (placeholder) placeholder.remove();
+        if (placeholder && placeholder.innerText.includes("no active"))
+          placeholder.remove();
         const wrap = document.createElement("div");
         wrap.className = "vid-wrap";
         wrap.id = "vid-" + identity + "-" + track.sid;
@@ -394,115 +528,226 @@
             '<span style="font-size:12px;color:#555;">none</span>';
       }
 
-      async function connect() {
-        const url = document.getElementById("lvUrl").value.trim();
-        const token = document.getElementById("lvToken").value.trim();
-        if (!url || !token) {
-          log("URL and token are required", "err");
-          return;
-        }
-        if (room) await disconnect();
-
-        room = new LK.Room({
-          adaptiveStream: true,
-          dynacast: true,
-        });
-
-        room.on(LK.RoomEvent.Connected, () => {
-          setStatus("connected");
-          log("connected — room: " + room.name, "ok");
-          updateParticipants();
-        });
-
-        room.on(LK.RoomEvent.Disconnected, (reason) => {
-          setStatus("disconnected");
-          log("disconnected: " + (reason || "normal"), "warn");
-          updateParticipants();
-        });
-
-        room.on(LK.RoomEvent.ConnectionStateChanged, (state) => {
-          log("state → " + state, "info");
-          if (state === "connecting") setStatus("connecting");
-        });
-
-        room.on(LK.RoomEvent.ParticipantConnected, (p) => {
-          log("participant joined: " + p.identity, "ok");
-          updateParticipants();
-        });
-
-        room.on(LK.RoomEvent.ParticipantDisconnected, (p) => {
-          log("participant left: " + p.identity, "warn");
-          updateParticipants();
-        });
-
-        room.on(LK.RoomEvent.TrackSubscribed, (track, pub, participant) => {
-          log(
-            "subscribed: " + track.kind + " from " + participant.identity,
-            "info",
-          );
-          if (track.kind === LK.Track.Kind.Video) {
-            attachVideo(track, participant.identity, false);
-          }
-          if (track.kind === LK.Track.Kind.Audio) {
-            const el = track.attach();
-            document.body.appendChild(el);
-          }
-        });
-
-        room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
-          log(
-            "unsubscribed: " + track.kind + " from " + participant.identity,
-            "warn",
-          );
-          track.detach().forEach((el) => el.remove());
-          if (track.kind === LK.Track.Kind.Video)
-            detachVideo(track, participant.identity);
-        });
-
-        room.on(LK.RoomEvent.LocalTrackPublished, (pub) => {
-          log("published local: " + pub.kind, "ok");
-          if (pub.kind === LK.Track.Kind.Video && pub.track) {
-            attachVideo(pub.track, room.localParticipant.identity, true);
-          }
-        });
-
-        room.on(LK.RoomEvent.LocalTrackUnpublished, (pub) => {
-          log("unpublished local: " + pub.kind, "warn");
-          if (pub.track) {
-            pub.track.detach().forEach((el) => el.remove());
-            if (pub.kind === LK.Track.Kind.Video)
-              detachVideo(pub.track, room.localParticipant.identity);
-          }
-        });
-
-        room.on(LK.RoomEvent.MediaDevicesError, (err) => {
-          log("media device error: " + err.message, "err");
-        });
-
-        try {
-          setStatus("connecting");
-          log("connecting to " + url + "…");
-          await room.connect(url, token);
-        } catch (e) {
-          setStatus("error");
-          log("connect failed: " + e.message, "err");
-          room = null;
-        }
-      }
-
-      async function disconnect() {
+      async function disconnectLiveKit() {
         if (!room) return;
         await room.disconnect();
         room = null;
         document.getElementById("videos").innerHTML =
           '<span style="font-size:12px;color:#555;">none</span>';
         document.getElementById("participants").innerHTML =
-          '<span style="font-size:12px;color:#555;">—</span>';
+          '<span style="color:#555;">—</span>';
         setStatus("disconnected");
+        log("disconnected from LiveKit", "warn");
+        roomNameBadge.textContent = "";
       }
 
+      // ---------- AUTH LOGIN (POST /api/login) ----------
+      async function performLogin() {
+        const username = document.getElementById("authUser").value.trim();
+        const password = document.getElementById("authPass").value.trim();
+        if (!username || !password) {
+          log("❌ Username and password required", "err");
+          authStatusDiv.innerText = "❌ missing credentials";
+          return false;
+        }
+        try {
+          log(`🔐 logging in as ${username}...`, "info");
+          const response = await fetch("https://backend.hxqi.my.id/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errText.slice(0, 80)}`);
+          }
+          const data = await response.json();
+          // expected response shape: { access_token: "..." } or { token: ... }
+          // according to typical API; we support both access_token / token
+          let bearer = data.access_token || data.token;
+          if (!bearer) throw new Error("No access_token in response");
+          storedAccessToken = bearer;
+          authStatusDiv.innerHTML = `✅ Logged in as ${username} · token ready`;
+          log(`✅ login success, access_token received`, "ok");
+          btnFetchToken.disabled = false;
+          manualTokenMode = false;
+          tokenTextarea.value = "";
+          return true;
+        } catch (err) {
+          log(`login error: ${err.message}`, "err");
+          authStatusDiv.innerHTML = `❌ login failed: ${err.message}`;
+          storedAccessToken = null;
+          btnFetchToken.disabled = true;
+          return false;
+        }
+      }
+
+      // fetch LiveKit token from backend using Bearer + room_name
+      async function fetchLiveKitToken() {
+        if (!storedAccessToken) {
+          log("🔐 No access token, please login first", "err");
+          return null;
+        }
+        const roomName = roomNameInput.value.trim();
+        if (!roomName) {
+          log("⚠️ room name is required to request token", "err");
+          return null;
+        }
+        try {
+          log(`📡 requesting LiveKit token for room "${roomName}" ...`, "info");
+          const resp = await fetch(
+            "https://backend.hxqi.my.id/api/call/token",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${storedAccessToken}`,
+                "Content-Type": "application/json",
+                "User-Agent": "LiveKitTestClient/1.0",
+              },
+              body: JSON.stringify({ room_name: roomName }),
+            },
+          );
+          if (!resp.ok) {
+            const errorBody = await resp.text();
+            throw new Error(
+              `token API error ${resp.status}: ${errorBody.slice(0, 100)}`,
+            );
+          }
+          const data = await resp.json();
+          // API may return { token: "JWT...." } or { livekit_token: ... } or just the token string
+          let livekitJwt = data.token || data.livekit_token || data.jwt;
+          if (!livekitJwt && typeof data === "string") livekitJwt = data;
+          if (!livekitJwt)
+            throw new Error("Response does not contain token field");
+          currentRoomToken = livekitJwt;
+          tokenTextarea.value = currentRoomToken;
+          log(
+            `✅ LiveKit token obtained successfully (room: ${roomName})`,
+            "ok",
+          );
+          return currentRoomToken;
+        } catch (err) {
+          log(`❌ fetch token failed: ${err.message}`, "err");
+          return null;
+        }
+      }
+
+      function logoutClear() {
+        storedAccessToken = null;
+        currentRoomToken = null;
+        manualTokenMode = false;
+        tokenTextarea.value = "";
+        btnFetchToken.disabled = true;
+        authStatusDiv.innerHTML = "🔓 logged out / cleared. Token removed.";
+        log("🔒 manual logout, auth token cleared", "warn");
+      }
+
+      // ------ LiveKit connection using current token (auto or manual) ------
+      async function connectToLiveKit() {
+        let url = urlInput.value.trim();
+        let token = tokenTextarea.value.trim();
+        if (!url) {
+          log("❌ LiveKit URL required", "err");
+          return;
+        }
+        if (!token) {
+          log("❌ JWT token missing (paste or fetch via login)", "err");
+          return;
+        }
+        if (
+          room &&
+          (room.state === "connected" || room.state === "connecting")
+        ) {
+          log("already connected or connecting, disconnect first", "warn");
+          return;
+        }
+        if (room) await disconnectLiveKit();
+
+        const roomInstance = new LK.Room({
+          adaptiveStream: true,
+          dynacast: true,
+          disconnectOnPageLeave: true,
+        });
+        room = roomInstance;
+
+        // attach event handlers
+        room.on(LK.RoomEvent.Connected, () => {
+          setStatus("connected");
+          log(`✅ connected — room: ${room.name}`, "ok");
+          updateParticipants();
+        });
+        room.on(LK.RoomEvent.Disconnected, (reason) => {
+          setStatus("disconnected");
+          log(`disconnected: ${reason || "normal"}`, "warn");
+          updateParticipants();
+          document.getElementById("videos").innerHTML =
+            '<span style="font-size:12px;color:#555;">none</span>';
+        });
+        room.on(LK.RoomEvent.ConnectionStateChanged, (state) => {
+          log(`connection state → ${state}`, "info");
+          if (state === "connecting") setStatus("connecting");
+        });
+        room.on(LK.RoomEvent.ParticipantConnected, (p) => {
+          log(`participant joined: ${p.identity}`, "ok");
+          updateParticipants();
+        });
+        room.on(LK.RoomEvent.ParticipantDisconnected, (p) => {
+          log(`participant left: ${p.identity}`, "warn");
+          updateParticipants();
+        });
+        room.on(LK.RoomEvent.TrackSubscribed, (track, pub, participant) => {
+          log(
+            `📺 subscribed: ${track.kind} from ${participant.identity}`,
+            "info",
+          );
+          if (track.kind === LK.Track.Kind.Video)
+            attachVideo(track, participant.identity, false);
+          if (track.kind === LK.Track.Kind.Audio) {
+            const audioEl = track.attach();
+            audioEl.muted = false;
+            document.body.appendChild(audioEl);
+          }
+        });
+        room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
+          log(
+            `unsubscribed: ${track.kind} from ${participant.identity}`,
+            "warn",
+          );
+          track.detach().forEach((el) => el.remove());
+          if (track.kind === LK.Track.Kind.Video)
+            detachVideo(track, participant.identity);
+        });
+        room.on(LK.RoomEvent.LocalTrackPublished, (pub) => {
+          log(`📸 published local: ${pub.kind}`, "ok");
+          if (pub.kind === LK.Track.Kind.Video && pub.track)
+            attachVideo(pub.track, room.localParticipant.identity, true);
+        });
+        room.on(LK.RoomEvent.LocalTrackUnpublished, (pub) => {
+          log(`unpublished local: ${pub.kind}`, "warn");
+          if (pub.track) {
+            pub.track.detach().forEach((el) => el.remove());
+            if (pub.kind === LK.Track.Kind.Video)
+              detachVideo(pub.track, room.localParticipant.identity);
+          }
+        });
+        room.on(LK.RoomEvent.MediaDevicesError, (err) => {
+          log(`media error: ${err.message}`, "err");
+        });
+
+        try {
+          setStatus("connecting");
+          log(`🔌 connecting to ${url} ...`, "info");
+          await room.connect(url, token);
+        } catch (e) {
+          setStatus("error");
+          log(`connect failed: ${e.message}`, "err");
+          room = null;
+        }
+      }
+
+      // publishing controls
       async function pubCamera() {
-        if (!room) {
+        if (!room || room.state !== "connected") {
           log("not connected", "err");
           return;
         }
@@ -514,9 +759,8 @@
           log("camera error: " + e.message, "err");
         }
       }
-
       async function pubMic() {
-        if (!room) {
+        if (!room || room.state !== "connected") {
           log("not connected", "err");
           return;
         }
@@ -529,36 +773,82 @@
         }
       }
       async function pubScreen() {
-        if (!room) {
+        if (!room || room.state !== "connected") {
           log("not connected", "err");
           return;
         }
         try {
           await room.localParticipant.setScreenShareEnabled(true);
-          log("screen share enabled", "ok");
+          log("screen share started", "ok");
         } catch (e) {
           log("screen share error: " + e.message, "err");
         }
       }
-
       async function unpubAll() {
-        if (!room) {
+        if (!room || room.state !== "connected") {
           log("not connected", "err");
           return;
         }
         await room.localParticipant.setCameraEnabled(false);
         await room.localParticipant.setMicrophoneEnabled(false);
         await room.localParticipant.setScreenShareEnabled(false);
-        log("all tracks unpublished", "warn");
+        log("all local tracks unpublished", "warn");
       }
 
-      document.getElementById("btnConnect").onclick = connect;
-      document.getElementById("btnDisconnect").onclick = disconnect;
+      // enable manual token mode: user can paste any JWT
+      function enableManualTokenMode() {
+        manualTokenMode = true;
+        authStatusDiv.innerHTML +=
+          " ✏️ Manual token mode active (paste any valid LiveKit JWT)";
+        log(
+          "Manual token mode: you can paste any LiveKit token directly",
+          "info",
+        );
+        btnFetchToken.disabled = false;
+      }
+
+      // UI bindings
+      btnLogin.onclick = async () => {
+        await performLogin();
+      };
+      btnLogout.onclick = () => {
+        logoutClear();
+        if (room) disconnectLiveKit();
+      };
+      btnFetchToken.onclick = async () => {
+        if (!storedAccessToken && !manualTokenMode) {
+          log(
+            "❌ no login session. Please login first or enable manual mode",
+            "err",
+          );
+          return;
+        }
+        if (manualTokenMode) {
+          log("manual mode active: paste token manually", "info");
+          return;
+        }
+        const tk = await fetchLiveKitToken();
+        if (tk) tokenTextarea.value = tk;
+      };
+      btnUseManual.onclick = () => {
+        enableManualTokenMode();
+      };
+      connectBtn.onclick = async () => {
+        await connectToLiveKit();
+      };
+      disconnectBtn.onclick = async () => {
+        await disconnectLiveKit();
+      };
       document.getElementById("btnCamera").onclick = pubCamera;
       document.getElementById("btnMic").onclick = pubMic;
       document.getElementById("btnScreen").onclick = pubScreen;
       document.getElementById("btnUnpub").onclick = unpubAll;
       document.getElementById("btnClear").onclick = clearLog;
+
+      // initial UI state
+      btnFetchToken.disabled = true;
+      if (tokenTextarea.value.trim() !== "") manualTokenMode = true;
+      setStatus("disconnected");
     </script>
   </body>
 </html>
